@@ -1,0 +1,59 @@
+#!/bin/bash
+
+set -euo pipefail
+
+list() {
+	echo "Use the number against the device to get/set the brightness."
+	sudo ddccontrol -p 2>/dev/null | awk -FDevice: '/Device:/{print $2}' | grep -En .
+}
+
+_require_device_num() {
+	device_num=${1:-}
+	if [[ -z $device_num ]]; then
+		echo "Device number empty!! Run '$0 list' to get the device number."
+		exit 1
+	fi
+}
+
+_require_brightness() {
+	brightness=${1:-}
+	if [[ -z $brightness || $brightness -gt 100 || $brightness -lt 0 ]]; then
+		echo "Invalid brightness!! Enter a number between 0 and 100."
+		exit 1
+	fi	
+}
+
+_set() {
+	device_num=${1:-}
+	_require_device_num $device_num
+	brightness=${2:-}
+	_require_brightness $brightness
+	device=$(list | awk "/${device_num}:/{print \$2}")
+	sudo ddccontrol -r 0x10 -w $brightness $device 2>/dev/null | grep Control
+}
+
+get() {
+	device_num=${1:-}
+	_require_device_num $device_num
+	device=$(list | awk "/${device_num}:/{print \$2}")
+	sudo ddccontrol -r 0x10 $device 2>/dev/null | grep Control
+}
+
+help() {
+	cat <<EOF
+Usage: $0 <command>
+
+<command> can be
+list: List all the connected displays
+get <display>: Get the current brightness for the passed display
+set <display> <brightness>: Set the brightness to the passed value for the selected display
+EOF
+}
+
+case ${1:-} in
+	list) shift; list $*;;
+	set) shift; _set $*;;
+	get) shift; get $*;;
+	help) help;;
+	*) echo "Invalid option passed!"; help;;
+esac
