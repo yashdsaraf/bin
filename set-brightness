@@ -7,6 +7,13 @@ list() {
 	sudo ddccontrol -p 2>/dev/null | awk -FDevice: '/Device:/{print $2}' | grep -En .
 }
 
+_require_ddccontrol() {
+	if ! which ddccontrol &>/dev/null; then
+		echo "ddccontrol not found! Install by running 'sudo apt install ddccontrol'"
+		exit 1
+	fi
+}
+
 _require_device_num() {
 	device_num=${1:-}
 	if [[ -z $device_num ]]; then
@@ -49,6 +56,8 @@ get <display>: Get the current brightness for the passed display
 set <display> <brightness>: Set the brightness to the passed value for the selected display
 EOF
 }
+
+_require_ddccontrol
 
 case ${1:-} in
 	list) shift; list $*;;
